@@ -55,7 +55,15 @@ export const useAuth = () => {
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterFormType) => {
       console.log("Attempting registration with:", data);
-      const response = await agent.post("/auth/register", data);
+      
+      // Convertir cell_phone de string a number
+      const registrationData = {
+        ...data,
+        cell_phone: parseInt(data.cell_phone, 10)
+      };
+      
+      console.log("Registration data after conversion:", registrationData);
+      const response = await agent.post("/auth/register", registrationData);
       console.log("Registration response:", response.data);
       return response.data;
     },
