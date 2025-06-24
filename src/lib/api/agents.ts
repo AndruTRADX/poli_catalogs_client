@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const agent = axios.create({
-  baseURL: 'http://tu-api.com/api',
+  baseURL: 'http://localhost:8000',
 });
 
 agent.interceptors.request.use(config => {
@@ -15,7 +15,7 @@ agent.interceptors.request.use(config => {
 agent.interceptors.response.use(
   response => response,
   error => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && localStorage.getItem('token')) {
       localStorage.removeItem('token');
       window.location.href = '/login';
     }

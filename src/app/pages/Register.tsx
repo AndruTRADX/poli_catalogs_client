@@ -10,8 +10,17 @@ export default function Register() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (form.validate()) {
-      register(form.values);
+      const formData = {
+        ...form.values,
+        cell_phone: parseInt(String(form.values.cell_phone), 10)
+      };
+      register(formData);
     }
+  };
+
+  const handleCellPhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, ''); // Solo números
+    form.handleChange('cell_phone', value);
   };
 
   return (
@@ -60,8 +69,9 @@ export default function Register() {
             type="tel"
             id="cell_phone"
             value={form.values.cell_phone || ''}
-            onChange={(e) => form.handleChange('cell_phone', e.target.value)}
+            onChange={handleCellPhoneChange}
             onBlur={() => form.handleBlur('cell_phone')}
+            placeholder="Ej: 3001234567"
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
           />
           {form.touched.cell_phone && form.errors.cell_phone && (
@@ -104,9 +114,14 @@ export default function Register() {
         </div>
 
         {authError && (
-          <p className="text-sm text-red-600">
-            {authError instanceof Error ? authError.message : 'Error al registrarse'}
-          </p>
+          <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-sm text-red-600">
+              {authError instanceof Error 
+                ? authError.message 
+                : 'Error al registrarse. Verifica que todos los campos sean correctos.'
+              }
+            </p>
+          </div>
         )}
 
         <button

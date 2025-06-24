@@ -10,7 +10,7 @@ export type LoginFormType = z.infer<typeof LoginForm>;
 export const RegisterForm = z.object({
   full_name: z.string(),
   email: z.string().email(),
-  cell_phone: z.string(),
+  cell_phone: z.number().int().positive('El teléfono debe ser un número válido'),
   password: z.string(),
   password_2: z.string(),
   role: z.string().optional(),

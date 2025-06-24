@@ -1,48 +1,21 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import agent from "../api/agents";
 import type { LoginFormType, RegisterFormType } from "../types/AuthForms"
 import { jwtDecode } from "jwt-decode";
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
-
-export interface AuthUser {
-  id: string;
-  email: string;
-  role: string;
-  fullName: string;
-  token: string;
-}
+import { useAuthContext, type AuthUser } from "../contexts/AuthContext";
 
 export const useAuth = () => {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, setUser, clearUser, isLoading } = useAuthContext();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const decoded: any = jwtDecode(token);
-        setUser({
-          id: decoded.id,
-          email: decoded.sub,
-          role: decoded.role || "user",
-          fullName: decoded.full_name || "",
-          token,
-        });
-      } catch (error) {
-        console.error("Error decoding token:", error);
-        localStorage.removeItem("token");
-      }
-    }
-    setIsLoading(false);
-  }, []);
+  const queryClient = useQueryClient();
 
   // Mutación para el login
   const loginMutation = useMutation({
     mutationFn: async (data: LoginFormType) => {
+      console.log("Attempting login with:", data);
       const response = await agent.post("/auth/login", data);
+      console.log("Login response:", response.data);
       return response.data;
     },
     onSuccess: (data) => {
@@ -61,21 +34,46 @@ export const useAuth = () => {
       setUser(authUser);
       navigate("/");
     },
+    onError: (error: unknown) => {
+      const axiosError = error as { 
+        message?: string; 
+        response?: { 
+          data?: unknown; 
+          status?: number; 
+          statusText?: string 
+        } 
+      };
+      console.error("Login error details:", {
+        message: axiosError.message,
+        response: axiosError.response?.data,
+        status: axiosError.response?.status,
+        statusText: axiosError.response?.statusText
+      });
+    },
   });
 
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterFormType) => {
+      console.log("Attempting registration with:", data);
       const response = await agent.post("/auth/register", data);
+      console.log("Registration response:", response.data);
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Registration successful:", data);
       navigate("/login");
+    },
+    onError: (error) => {
+      console.error("Registration error:", error);
     },
   });
 
   const logout = () => {
-    localStorage.removeItem("token");
-    setUser(null);
+    clearUser();
+    
+    // Limpiar todas las queries de React Query (incluyendo el carrito)
+    queryClient.clear();
+    
     navigate("/login");
     agent.get("/auth/logout");
   };

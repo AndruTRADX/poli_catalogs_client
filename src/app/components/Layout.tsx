@@ -1,8 +1,11 @@
 import { Outlet, Link } from 'react-router';
 import { useAuth } from '../../lib/hooks/useAuth';
+import { useAuthContext } from '../../lib/contexts/AuthContext';
+import CartWidget from './CartWidget';
 
 export default function Layout() {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
+  const { user } = useAuthContext();
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -17,9 +20,18 @@ export default function Layout() {
                 <Link to="/articles" className="text-gray-700 hover:text-gray-900">
                   Artículos
                 </Link>
+                {user && (
+                  <Link to="/cart" className="text-gray-700 hover:text-gray-900">
+                    Mi Carrito
+                  </Link>
+                )}
               </div>
             </div>
-            <div className="flex items-center">
+            <div className="flex items-center space-x-6">
+              <div className="flex-shrink-0">
+                <CartWidget />
+              </div>
+              
               {user ? (
                 <div className="flex items-center space-x-4">
                   <span className="text-gray-700">{user.fullName}</span>

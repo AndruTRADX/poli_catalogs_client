@@ -6,7 +6,9 @@ import Register from './pages/Register';
 import ArticleList from './pages/ArticleList';
 import ArticleDetail from './pages/ArticleDetail';
 import ArticleForm from './pages/ArticleForm';
+import Cart from './pages/Cart';
 import ProtectedRoute from './components/ProtectedRoute';
+import AuthTest from './components/AuthTest';
 
 export const router = createBrowserRouter([
   {
@@ -24,6 +26,14 @@ export const router = createBrowserRouter([
       {
         path: 'register',
         element: <Register />
+      },
+      {
+        path: 'auth-test',
+        element: <AuthTest />
+      },
+      {
+        path: 'cart',
+        element: <Cart />
       },
       {
         path: 'articles',
