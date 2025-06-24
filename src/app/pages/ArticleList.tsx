@@ -1,27 +1,76 @@
 import { Link } from 'react-router';
 import { useArticleSearch } from '../../lib/hooks/useArticleSearch';
+import { useAdvancedSearch } from '../../lib/hooks/useAdvancedSearch';
+import { useCategories } from '../../lib/hooks/useCategories';
 import { useAuth } from '../../lib/hooks/useAuth';
 import ProductImage from '../components/ProductImage';
 import SearchBar from '../components/SearchBar';
+import AdvancedSearchPanel from '../components/AdvancedSearchPanel';
+import ActiveFilters from '../components/ActiveFilters';
 import type { Article } from '../../lib/types/Article';
 
 export default function ArticleList() {
   const { isAdmin } = useAuth();
+  const { categories } = useCategories();
+  
+  // Búsqueda simple
   const {
     searchTerm,
-    searchResults,
-    isSearching,
-    searchError,
+    searchResults: simpleSearchResults,
+    isSearching: isSimpleSearching,
+    searchError: simpleSearchError,
     handleSearchChange,
-    clearSearch,
+    clearSearch: clearSimpleSearch,
     hasSearchTerm
   } = useArticleSearch();
 
-  // Usar los resultados de búsqueda o todos los artículos
-  const articles = searchResults;
-  const isPendingArticles = isSearching;
+  // Búsqueda avanzada
+  const {
+    searchParams,
+    updateSearchParam,
+    clearFilters,
+    applyAdvancedSearch,
+    hasActiveFilters,
+    isAdvancedSearchActive,
+    searchResults: advancedSearchResults,
+    isSearching: isAdvancedSearching,
+    searchError: advancedSearchError,
+    resetSearch: resetAdvancedSearch
+  } = useAdvancedSearch();
 
-  if (isPendingArticles && !hasSearchTerm) {
+  // Función auxiliar para contar filtros activos
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (searchParams.name) count++;
+    if (searchParams.category) count++;
+    if (searchParams.min_price) count++;
+    if (searchParams.max_price) count++;
+    return count;
+  };
+
+  // Determinar qué resultados mostrar
+  const articles = isAdvancedSearchActive ? advancedSearchResults : simpleSearchResults;
+  const isPendingArticles = isSimpleSearching || isAdvancedSearching;
+  const searchError = simpleSearchError || advancedSearchError;
+
+  // Función para limpiar búsqueda avanzada
+  const handleClearAdvancedSearch = () => {
+    clearFilters();
+    resetAdvancedSearch();
+  };
+
+  // Función para remover un filtro específico
+  const handleRemoveFilter = (key: keyof typeof searchParams) => {
+    updateSearchParam(key, undefined);
+  };
+
+  // Función para limpiar todas las búsquedas
+  const handleClearAllSearches = () => {
+    clearSimpleSearch();
+    handleClearAdvancedSearch();
+  };
+
+  if (isPendingArticles && !hasSearchTerm && !hasActiveFilters) {
     return (
       <div className="flex justify-center items-center min-h-64">
         <div className="text-center">
@@ -39,23 +88,29 @@ export default function ArticleList() {
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
           <div>
             <h2 className="text-2xl font-bold text-gray-800">
-              {hasSearchTerm ? 'Resultados de búsqueda' : 'Artículos'}
+              {isAdvancedSearchActive ? 'Búsqueda Avanzada' : hasSearchTerm ? 'Resultados de búsqueda' : 'Artículos'}
             </h2>
             {hasSearchTerm && (
               <p className="text-gray-600 mt-1">
                 Buscando: "{searchTerm}"
               </p>
             )}
+            {isAdvancedSearchActive && (
+              <p className="text-gray-600 mt-1">
+                Filtros aplicados: {getActiveFiltersCount()}
+              </p>
+            )}
           </div>
           
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-            {/* Barra de búsqueda */}
+            {/* Barra de búsqueda simple */}
             <div className="w-full lg:w-80">
               <SearchBar
                 value={searchTerm}
                 onChange={handleSearchChange}
                 placeholder="Buscar por nombre..."
-                onClear={clearSearch}
+                onClear={clearSimpleSearch}
+                showSuggestions={!isAdvancedSearchActive}
               />
             </div>
             
@@ -71,21 +126,39 @@ export default function ArticleList() {
           </div>
         </div>
 
+        {/* Panel de búsqueda avanzada */}
+        <AdvancedSearchPanel
+          searchParams={searchParams}
+          onUpdateParam={updateSearchParam}
+          onApplySearch={applyAdvancedSearch}
+          onClearFilters={handleClearAdvancedSearch}
+          hasActiveFilters={hasActiveFilters}
+          isSearching={isAdvancedSearching}
+          categories={categories as string[]}
+        />
+
+        {/* Filtros activos */}
+        <ActiveFilters
+          searchParams={searchParams}
+          onRemoveFilter={handleRemoveFilter}
+          onClearAll={handleClearAdvancedSearch}
+        />
+
         {/* Información de resultados */}
-        {hasSearchTerm && (
+        {(hasSearchTerm || isAdvancedSearchActive) && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <span className="text-blue-600">🔍</span>
                 <span className="text-blue-800 font-medium">
-                  {isSearching ? 'Buscando...' : `${articles?.length || 0} resultado${articles?.length !== 1 ? 's' : ''} encontrado${articles?.length !== 1 ? 's' : ''}`}
+                  {isPendingArticles ? 'Buscando...' : `${articles?.length || 0} resultado${articles?.length !== 1 ? 's' : ''} encontrado${articles?.length !== 1 ? 's' : ''}`}
                 </span>
               </div>
               <button
-                onClick={clearSearch}
+                onClick={handleClearAllSearches}
                 className="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors duration-200"
               >
-                Limpiar búsqueda
+                Limpiar búsquedas
               </button>
             </div>
           </div>
@@ -109,7 +182,7 @@ export default function ArticleList() {
         {articles?.map((article: Article) => (
           <div
             key={article.id}
-            className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300"
+            className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 search-result-item"
           >
             <div className="relative">
               <ProductImage
@@ -158,15 +231,18 @@ export default function ArticleList() {
       </div>
 
       {/* Estados vacíos */}
-      {!isPendingArticles && articles?.length === 0 && hasSearchTerm && (
+      {!isPendingArticles && articles?.length === 0 && (hasSearchTerm || isAdvancedSearchActive) && (
         <div className="text-center py-12">
           <div className="text-gray-400 text-6xl mb-4">🔍</div>
           <h3 className="text-xl font-semibold text-gray-800 mb-2">No se encontraron resultados</h3>
           <p className="text-gray-600 mb-4">
-            No hay artículos que coincidan con "{searchTerm}"
+            {hasSearchTerm 
+              ? `No hay artículos que coincidan con "${searchTerm}"`
+              : 'No hay artículos que coincidan con los filtros aplicados'
+            }
           </p>
           <button
-            onClick={clearSearch}
+            onClick={handleClearAllSearches}
             className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors duration-200"
           >
             Ver todos los artículos
@@ -174,7 +250,7 @@ export default function ArticleList() {
         </div>
       )}
 
-      {!isPendingArticles && articles?.length === 0 && !hasSearchTerm && (
+      {!isPendingArticles && articles?.length === 0 && !hasSearchTerm && !hasActiveFilters && (
         <div className="text-center py-12">
           <div className="text-gray-400 text-6xl mb-4">📦</div>
           <p className="text-gray-600 text-lg">No hay artículos disponibles</p>

@@ -1,40 +1,33 @@
-import { useMemo } from "react";
-import { CATEGORIES, type Category, type CategoryStats } from "../types/Category";
-import type { Article } from "../types/Article";
+import { useQuery } from '@tanstack/react-query';
+import agent from '../api/agents';
+import type { Article } from '../types/Article';
 
-export const useCategories = (articles?: Article[]) => {
-  const categories = useMemo(() => CATEGORIES, []);
-
-  const categoryStats = useMemo(() => {
-    if (!articles) return [];
-    
-    const stats: CategoryStats[] = [];
-    const categoryCount: Record<string, number> = {};
-    
-    articles.forEach(article => {
-      categoryCount[article.category] = (categoryCount[article.category] || 0) + 1;
-    });
-    
-    CATEGORIES.forEach(category => {
-      stats.push({
-        category,
-        count: categoryCount[category] || 0,
-      });
-    });
-    
-    return stats;
-  }, [articles]);
-
-  const getArticlesByCategory = useMemo(() => {
-    return (category: Category) => {
-      if (!articles) return [];
-      return articles.filter(article => article.category === category);
-    };
-  }, [articles]);
+export const useCategories = () => {
+  const { data: categories, isPending, error } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      try {
+        // Obtener todos los artículos para extraer categorías únicas
+        const response = await agent.get("/productos/catalogo");
+        const articles = response.data.articulos || [];
+        
+        // Extraer categorías únicas y ordenarlas
+        const uniqueCategories = [...new Set(
+          articles.map((article: Article) => article.category).filter(Boolean)
+        )].sort();
+        
+        return uniqueCategories;
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        return [];
+      }
+    },
+    staleTime: 5 * 60 * 1000, // Cache por 5 minutos
+  });
 
   return {
-    categories,
-    categoryStats,
-    getArticlesByCategory,
+    categories: categories || [],
+    isPending,
+    error,
   };
 }; 
