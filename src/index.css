@@ -1,1 +1,58 @@
 @import "tailwindcss";
+
+/* Estilos personalizados para la búsqueda */
+.search-highlight {
+  background-color: #fef3c7;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-weight: 600;
+}
+
+/* Animaciones personalizadas */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+/* Estilos para el debounce visual */
+.debounce-indicator {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Mejoras para el input de búsqueda */
+.search-input:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Estilos para resultados de búsqueda */
+.search-result-item {
+  transition: all 0.2s ease-in-out;
+}
+
+.search-result-item:hover {
+  transform: translateY(-2px);
+}
+
+/* Estilos para el estado de carga */
+.loading-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .5;
+  }
+}
